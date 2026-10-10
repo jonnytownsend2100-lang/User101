@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    { "path": "/api/worker", "schedule": "*/2 * * * *" }
+  ],
+  "functions": {
+    "api/worker.js": { "maxDuration": 300, "memory": 1024 }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "no-store" }]
+    }
+  ]
+}
