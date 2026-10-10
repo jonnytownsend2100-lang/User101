@@ -1,0 +1,9 @@
+{
+  "taskId": "t-mv1t1xtz-85b4fa",
+  "nodeId": "node-alpha",
+  "status": "done",
+  "title": "race test task",
+  "payload": null,
+  "output": "ack:t-mv1t1xtz-85b4fa",
+  "finishedAt": "2026-10-10T02:58:52.043Z"
+}
