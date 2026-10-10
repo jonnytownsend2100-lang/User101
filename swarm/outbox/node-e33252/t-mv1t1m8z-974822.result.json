@@ -1,0 +1,9 @@
+{
+  "taskId": "t-mv1t1m8z-974822",
+  "nodeId": "node-e33252",
+  "status": "done",
+  "title": "echo hello from swarm",
+  "payload": null,
+  "output": "ack:t-mv1t1m8z-974822",
+  "finishedAt": "2026-10-10T02:58:41.782Z"
+}
