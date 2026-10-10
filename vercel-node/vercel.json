@@ -4,7 +4,8 @@
     { "path": "/api/worker", "schedule": "*/2 * * * *" }
   ],
   "functions": {
-    "api/worker.js": { "maxDuration": 300, "memory": 1024 }
+    "api/worker.js": { "maxDuration": 300, "memory": 1024 },
+    "api/inbox.js": { "maxDuration": 60, "memory": 512 }
   },
   "headers": [
     {
