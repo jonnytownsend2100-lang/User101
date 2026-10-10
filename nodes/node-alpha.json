@@ -1,0 +1,12 @@
+{
+  "nodeId": "node-alpha",
+  "publicKey": "ephemeral:73ca2d847265e669b89c657908e79b03",
+  "keyInjected": false,
+  "capabilities": [
+    "code-edit",
+    "test-run",
+    "node-24.21.0"
+  ],
+  "createdAt": "2026-10-10T02:58:47.794Z",
+  "lastSeen": "2026-10-10T02:58:47.795Z"
+}

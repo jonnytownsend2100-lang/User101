@@ -1,0 +1,12 @@
+{
+  "nodeId": "node-beta",
+  "publicKey": "ephemeral:d02ef031c55b1b1671bbd27b7c9de341",
+  "keyInjected": false,
+  "capabilities": [
+    "code-edit",
+    "test-run",
+    "node-24.21.0"
+  ],
+  "createdAt": "2026-10-10T02:58:47.795Z",
+  "lastSeen": "2026-10-10T02:58:47.795Z"
+}
