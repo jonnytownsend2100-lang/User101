@@ -1,0 +1,17 @@
+{
+  "name": "burnrate",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Burnrate - CI cost intelligence for GitHub Actions. See what every workflow, branch, PR and person costs you, and find the dollars you are burning.",
+  "engines": { "node": ">=22" },
+  "bin": { "burnrate": "./src/cli.js" },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "start": "node src/cli.js serve",
+    "report": "node src/cli.js report",
+    "rates": "node src/cli.js rates"
+  },
+  "dependencies": {},
+  "license": "UNLICENSED"
+}
