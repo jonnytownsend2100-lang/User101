@@ -1,0 +1,24 @@
+{
+  "name": "beacon",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Beacon — Search & AI-Visibility audits for agencies. Crawl a URL, get a scored, white-label report you can sell.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "bin": { "beacon": "src/cli.js" },
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./report/html": "./src/report/html.js"
+  },
+  "files": ["src", "server", "docs", "README.md", "LICENSE"],
+  "scripts": {
+    "test": "node --test test/",
+    "audit": "node src/cli.js audit",
+    "serve": "node server/index.js",
+    "demo": "node src/cli.js audit ./test/fixtures/good.html --local"
+  },
+  "keywords": ["seo", "geo", "ai-visibility", "audit", "agency", "llms-txt"],
+  "dependencies": {}
+}
