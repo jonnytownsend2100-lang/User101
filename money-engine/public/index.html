@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Money Engine — model the money before you spend the time</title>
+<meta name="description" content="A cash-flow model for side hustles and small businesses. Projects profit, break-even volume, payback, effective hourly rate, and ranks the levers that move the bottom line most." />
+<link rel="stylesheet" href="/styles.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>⚙️</text></svg>" />
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <div class="brand">
+      <span class="logo">⚙️</span>
+      <div>
+        <h1>Money Engine</h1>
+        <p class="tagline">Model the money before you spend the time.</p>
+      </div>
+    </div>
+    <nav class="topnav">
+      <a href="#modeller">Modeller</a>
+      <a href="#levers">Levers</a>
+      <a href="#playbooks">Playbooks</a>
+      <a href="#method">Method</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap notice" role="note">
+  <strong>What this is not:</strong> it does not generate money, and nothing that works this way can.
+  It is a cash-flow model — you describe a business, and it tells you whether the arithmetic works,
+  how many customers it takes, and which single change pays best. The inputs are yours; the maths is
+  plain enough to check by hand.
+</div>
+
+<main class="wrap layout">
+  <section id="modeller" class="panel inputs">
+    <h2>1. Your model</h2>
+
+    <div class="field">
+      <label for="playbook">Start from a playbook</label>
+      <select id="playbook"><option value="">Blank scenario…</option></select>
+      <p class="hint">Each playbook loads realistic starting numbers. Overwrite any of them.</p>
+    </div>
+
+    <div class="field">
+      <label for="label">Name this scenario</label>
+      <input id="label" type="text" value="My side hustle" maxlength="60" />
+    </div>
+
+    <fieldset>
+      <legend>Shape of the business</legend>
+      <div class="field">
+        <label for="mode">Revenue type</label>
+        <select id="mode">
+          <option value="recurring">Recurring — subscriptions, memberships, retainers</option>
+          <option value="flow">Flow — one-off sales, projects, orders</option>
+        </select>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Price and volume</legend>
+      <div class="field">
+        <label for="price">Price per unit / month</label>
+        <input id="price" type="number" min="0" step="1" value="50" />
+      </div>
+      <div class="field">
+        <label for="units">Starting customers / units per month</label>
+        <input id="units" type="number" min="0" step="1" value="20" />
+      </div>
+      <div class="field">
+        <label for="growthPct">New customers per month <output id="growthPct-out"></output></label>
+        <input id="growthPct" type="range" min="-10" max="40" step="0.5" value="5" />
+      </div>
+      <div class="field" id="churn-field">
+        <label for="churnPct">Churn per month <output id="churnPct-out"></output></label>
+        <input id="churnPct" type="range" min="0" max="30" step="0.5" value="3" />
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Costs</legend>
+      <div class="field">
+        <label for="variableCostPct">Cost to deliver, % of revenue <output id="variableCostPct-out"></output></label>
+        <input id="variableCostPct" type="range" min="0" max="90" step="1" value="15" />
+      </div>
+      <div class="field">
+        <label for="fixedCostMonthly">Fixed costs per month ($)</label>
+        <input id="fixedCostMonthly" type="number" min="0" step="10" value="100" />
+      </div>
+      <div class="field">
+        <label for="acqCostPerUnit">Cost to win one customer ($)</label>
+        <input id="acqCostPerUnit" type="number" min="0" step="1" value="5" />
+      </div>
+      <div class="field">
+        <label for="startupCost">One-off setup cost ($)</label>
+        <input id="startupCost" type="number" min="0" step="50" value="0" />
+      </div>
+      <div class="field">
+        <label for="taxRatePct">Tax set-aside, % of profit <output id="taxRatePct-out"></output></label>
+        <input id="taxRatePct" type="range" min="0" max="55" step="1" value="25" />
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Your time</legend>
+      <div class="field">
+        <label for="hoursPerWeek">Hours per week <output id="hoursPerWeek-out"></output></label>
+        <input id="hoursPerWeek" type="range" min="0" max="60" step="1" value="10" />
+      </div>
+      <div class="field">
+        <label for="months">Months to project <output id="months-out"></output></label>
+        <input id="months" type="range" min="6" max="60" step="1" value="24" />
+      </div>
+    </fieldset>
+
+    <div class="field">
+      <label for="target">Target profit per month, net ($)</label>
+      <input id="target" type="number" min="0" step="100" value="3000" />
+      <p class="hint">Answers “what would it take to clear this?”</p>
+    </div>
+
+    <div class="actions">
+      <button id="reset" type="button" class="ghost">Reset</button>
+      <button id="export" type="button" class="ghost">Download ledger (CSV)</button>
+    </div>
+    <p class="hint" id="status" aria-live="polite"></p>
+  </section>
+
+  <section class="results" id="results">
+    <h2>2. What the arithmetic says</h2>
+    <div id="headline" class="cards"></div>
+
+    <div class="panel">
+      <h3>Cumulative profit</h3>
+      <p class="hint">Where the running total crosses zero is the month you have your money back. The dashed line is setup cost.</p>
+      <div id="chart" class="chart"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Monthly ledger</h3>
+      <div id="table-wrap" class="table-wrap"></div>
+    </div>
+
+    <div class="panel" id="levers">
+      <h3>Levers, ranked by annual impact</h3>
+      <p class="hint">Each bar is the annual profit change from one ~10% improvement, all else equal. Work top-down: this is the order that pays best for the same effort.</p>
+      <div id="sensitivity"></div>
+    </div>
+
+    <div class="panel" id="goal">
+      <h3>To hit your target</h3>
+      <div id="goal-body"></div>
+    </div>
+
+    <div class="panel" id="warnings-panel" hidden>
+      <h3>Watch out</h3>
+      <ul id="warnings"></ul>
+    </div>
+  </section>
+</main>
+
+<section id="playbooks" class="wrap panel">
+  <h2>Playbook library</h2>
+  <p class="hint">Nine ways people actually make money, with ranges wide enough to be honest. Load any of them into the modeller above.</p>
+  <div id="playbook-grid" class="playbook-grid"></div>
+</section>
+
+<section id="method" class="wrap panel">
+  <h2>Method, and what this cannot tell you</h2>
+  <div class="method">
+    <div>
+      <h3>The model</h3>
+      <p>Each month: revenue is units times price. Gross profit subtracts cost of delivery. Operating profit subtracts fixed costs and the cost of every customer you had to acquire that month — including replacements for the ones who churned. Tax applies only to positive operating profit; losses are never credited back.</p>
+      <pre class="formula">contribution per unit
+  = price × (1 − delivery%)
+    − acquisition cost × (growth% + churn%)
+
+break-even units = fixed costs ÷ contribution per unit</pre>
+      <p>The churn term is the part most models get wrong. To grow 10% while losing 6%, you must acquire 16% of your base every month — you replace the leavers before you add anyone.</p>
+    </div>
+    <div>
+      <h3>Honest limits</h3>
+      <ul>
+        <li>It is linear and monthly. Real businesses are lumpy, seasonal, and pay late.</li>
+        <li>Cash timing is ignored: revenue is booked when earned, not when collected.</li>
+        <li>Growth and churn are held constant. Real curves bend — usually downward.</li>
+        <li>It cannot see demand. A perfect model of a business nobody wants is still worth zero.</li>
+        <li>The playbook ranges summarise other people's outcomes, not promises about yours.</li>
+      </ul>
+      <p>Use it to reject bad arithmetic early — that is where it earns its keep.</p>
+    </div>
+  </div>
+</section>
+
+<footer class="wrap footer">
+  <p>Money Engine · no dependencies, no tracking, no accounts. Runs on node's standard library. The same model is in the terminal: <code>node cli.mjs --playbook micro-saas</code></p>
+</footer>
+
+<script src="/app.js" type="module"></script>
+</body>
+</html>
+

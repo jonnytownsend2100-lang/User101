@@ -62,16 +62,23 @@ export function normalize(input = {}) {
 /**
  * Pre-tax profit per unit at steady state.
  *
- * `price * (1 - varCost)`     value left after cost of goods
- * `- acqCost * growthRate`    acquisition paid on each newly added unit
+ * `price * (1 - varCost)`      value left after cost of goods
+ * `- acqCost * (growth+churn)` acquisition paid on the units you must add
  *
- * The second term is why growth is not free: a recurring business growing
- * 10%/mo pays CAC on 10% of its base every month, forever.
+ * The second term is why growth is not free. To grow the base by `g` while
+ * losing `c` to churn, you have to acquire `g + c` percent of the base every
+ * month, forever — churned customers must be replaced before any growth
+ * happens. Charging CAC only on net growth (`g - c`) is the single most common
+ * way a subscription model gets modelled too optimistically.
  */
 export function contributionPerUnit(cfg) {
   const afterCogs = cfg.price * (1 - cfg.variableCostPct / 100);
-  const newUnitRate = cfg.mode === MODE_RECURRING ? cfg.growthPct / 100 : 1;
-  return afterCogs - cfg.acqCostPerUnit * newUnitRate;
+  return afterCogs - cfg.acqCostPerUnit * newUnitRate(cfg);
+}
+
+/** Units acquired per month, as a fraction of the existing base. */
+function newUnitRate(cfg) {
+  return cfg.mode === MODE_RECURRING ? (cfg.growthPct + cfg.churnPct) / 100 : 1;
 }
 
 /** The unit count on which the model starts, month by month. */
@@ -97,14 +104,14 @@ function taxOn(operatingProfit, taxRatePct) {
   return operatingProfit * (taxRatePct / 100);
 }
 
-/** One month of the model. Pure function of (cfg, units, prevUnits). */
-export function monthRow(cfg, units, prevUnits) {
+/** One month of the model. Pure function of (cfg, units, newUnits). */
+export function monthRow(cfg, units, newUnits) {
   const revenue = units * cfg.price;
   const variableCost = revenue * (cfg.variableCostPct / 100);
   const grossProfit = revenue - variableCost;
 
-  const newUnits = cfg.mode === MODE_RECURRING ? units - prevUnits : units;
-  const acquisitionCost = Math.max(0, newUnits) * cfg.acqCostPerUnit;
+  const acquired = Math.max(0, newUnits);
+  const acquisitionCost = acquired * cfg.acqCostPerUnit;
   const opex = cfg.fixedCostMonthly + acquisitionCost;
   const operatingProfit = grossProfit - opex;
   const tax = taxOn(operatingProfit, cfg.taxRatePct);
@@ -114,7 +121,7 @@ export function monthRow(cfg, units, prevUnits) {
     revenue,
     variableCost,
     grossProfit,
-    newUnits,
+    newUnits: acquired,
     acquisitionCost,
     opex,
     operatingProfit,
@@ -128,9 +135,13 @@ export function project(cfg) {
   const rows = [];
   let cumulative = -cfg.startupCost;
   const units = unitPath(cfg);
+  const rate = newUnitRate(cfg);
   for (let m = 0; m < cfg.months; m++) {
     const prevUnits = m === 0 ? 0 : units[m - 1];
-    const row = monthRow(cfg, units[m], prevUnits);
+    // Month 1 acquires the whole opening base; after that you only pay for
+    // replacements and additions.
+    const newUnits = m === 0 ? units[0] : prevUnits * rate;
+    const row = monthRow(cfg, units[m], newUnits);
     cumulative += row.netProfit;
     rows.push({ month: m + 1, units: units[m], cumulativeNet: cumulative, ...row });
   }
@@ -221,14 +232,14 @@ export function goalSeek(cfg, targetMonthlyNet) {
     : null;
 
   // Required price: solve the steady-state profit equation for `price`.
-  //   profit = units * (price*(1-v) - acq*growthRate) - fixed
+  //   profit = units * (price*(1-v) - acq*(g+c)) - fixed
   let requiredPrice = null;
   if (cfg.units > 0) {
     const perUnitTarget = (preTaxTarget + cfg.fixedCostMonthly) / cfg.units;
-    const growthRate = cfg.mode === MODE_RECURRING ? cfg.growthPct / 100 : 1;
+    const rate = cfg.mode === MODE_RECURRING ? (cfg.growthPct + cfg.churnPct) / 100 : 1;
     const denom = 1 - cfg.variableCostPct / 100;
     if (denom > 0.0001) {
-      const p = (perUnitTarget + cfg.acqCostPerUnit * growthRate) / denom;
+      const p = (perUnitTarget + cfg.acqCostPerUnit * rate) / denom;
       if (Number.isFinite(p) && p > 0) requiredPrice = p;
     }
   }

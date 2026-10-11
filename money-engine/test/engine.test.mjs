@@ -80,9 +80,22 @@ test('tax applies only to positive operating profit', () => {
   close(row.netProfit, row.operatingProfit);
 });
 
-test('contribution per unit subtracts growth-funded CAC', () => {
-  const cfg = normalize({ mode: MODE_RECURRING, price: 100, variableCostPct: 20, growthPct: 10, acqCostPerUnit: 30 });
+test('contribution per unit subtracts acquisition on replacements + growth', () => {
+  const cfg = normalize({ mode: MODE_RECURRING, price: 100, variableCostPct: 20, growthPct: 10, churnPct: 0, acqCostPerUnit: 30 });
   close(contributionPerUnit(cfg), 100 * 0.8 - 30 * 0.1);
+
+  // With 6% churn you must replace 6% before growing 10%: 16% of the base.
+  const churning = normalize({ mode: MODE_RECURRING, price: 100, variableCostPct: 20, growthPct: 10, churnPct: 6, acqCostPerUnit: 30 });
+  close(contributionPerUnit(churning), 100 * 0.8 - 30 * 0.16);
+});
+
+test('churned customers are re-acquired, not silently free', () => {
+  const cfg = normalize({ mode: MODE_RECURRING, units: 100, growthPct: 0, churnPct: 10, acqCostPerUnit: 7, price: 50, variableCostPct: 0, fixedCostMonthly: 0, taxRatePct: 0, months: 2 });
+  const rows = project(cfg);
+  close(rows[0].newUnits, 100); // opening base
+  close(rows[1].newUnits, 10); // 10 churned, 0 growth → 10 replacements
+  close(rows[1].units, 90);
+  close(rows[1].acquisitionCost, 70);
 });
 
 test('break-even units produce exactly zero operating profit', () => {
@@ -90,7 +103,18 @@ test('break-even units produce exactly zero operating profit', () => {
   const res = simulate({ ...cfg, months: 1 });
   assert.ok(res.breakEvenUnits !== null);
   close(res.breakEvenUnits, 1000 / (50 * 0.8 - 5));
-  close(monthRow(cfg, res.breakEvenUnits, 0).operatingProfit, 0, 1e-9);
+  // In flow mode every unit sold is a newly acquired unit in that month.
+  close(monthRow(cfg, res.breakEvenUnits, res.breakEvenUnits).operatingProfit, 0, 1e-9);
+});
+
+test('break-even holds for a flat recurring base too', () => {
+  // growth == churn keeps the base constant, so the steady-state algebra is exact.
+  const cfg = normalize({ mode: MODE_RECURRING, price: 60, variableCostPct: 25, acqCostPerUnit: 20, growthPct: 4, churnPct: 4, fixedCostMonthly: 800, taxRatePct: 0 });
+  const res = simulate({ ...cfg, months: 3 });
+  const be = res.breakEvenUnits;
+  close(be, 800 / (60 * 0.75 - 20 * 0.08));
+  const rate = (cfg.growthPct + cfg.churnPct) / 100;
+  close(monthRow(cfg, be, be * rate).operatingProfit, 0, 1e-9);
 });
 
 test('break-even is null when every unit loses money', () => {
