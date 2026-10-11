@@ -1,0 +1,14 @@
+{
+  "name": "money-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A cash-flow model and decision tool for side hustles and small businesses. No dependencies.",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "start": "node server.mjs",
+    "dev": "node server.mjs",
+    "cli": "node cli.mjs"
+  },
+  "engines": { "node": ">=20" }
+}
