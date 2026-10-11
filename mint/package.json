@@ -1,0 +1,15 @@
+{
+  "name": "mint",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A money-generating app: sell a product, take payment, issue a license, watch the ledger. Zero dependencies.",
+  "bin": { "mint": "./bin/mint.mjs" },
+  "scripts": {
+    "start": "node bin/mint.mjs serve",
+    "seed": "node bin/mint.mjs seed",
+    "report": "node bin/mint.mjs report",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=20" }
+}
