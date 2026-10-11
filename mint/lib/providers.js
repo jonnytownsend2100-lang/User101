@@ -45,7 +45,7 @@ export const stripe = {
       'line_items[0][price_data][currency]': order.currency,
       'line_items[0][price_data][unit_amount]': String(order.amount),
       'line_items[0][price_data][product_data][name]': product.name,
-      success_url: `${baseUrl}/thanks?order=${order.id}`,
+      success_url: `${baseUrl}/thanks?order=${order.id}&t=${order.claimToken}`,
       cancel_url: `${baseUrl}/?canceled=${order.id}`,
       client_reference_id: order.id,
       customer_email: order.email,

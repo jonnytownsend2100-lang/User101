@@ -99,7 +99,7 @@ export function metrics(store, { now = new Date(), days = 30 } = {}) {
 export function priceAdvice({ amount, fee, targetMargin = 0.8 }) {
   const net = amount - fee;
   const margin = amount ? net / amount : 0;
-  const minForTarget = Math.ceil(fee / (1 - targetMargin));
+  const minForTarget = Math.ceil(Number((fee / (1 - targetMargin)).toFixed(6)));
   return {
     amount,
     fee,

@@ -83,6 +83,9 @@ export async function createOrder(store, {
     fee,
     net: amount - fee,
     interval: product.interval ?? null,
+    // The claim token, not the order id, is what authorises reading the order
+    // back (and with it the license key). Order ids leak into logs and URLs.
+    claimToken: id('tok'),
     status: 'pending',
     provider: provider.name,
     providerRef: null,
