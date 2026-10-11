@@ -20,7 +20,7 @@ export function makeMemoryStore({
   const rows = new Map();
   for (const t of tasks) {
     rows.set(t.taskId, {
-      ...t, state: 'pending', nodeId: null, claimedAt: null, attempts: 0,
+      ...t, kind: t.kind ?? 'echo', state: 'pending', nodeId: null, claimedAt: null, attempts: 0,
       result: null, nextAttemptAt: 0,
     });
   }
@@ -53,7 +53,8 @@ export function makeMemoryStore({
     async enqueue(task) {
       const taskId = task.taskId ?? `t-${Math.random().toString(36).slice(2, 10)}`;
       rows.set(taskId, {
-        taskId, title: task.title ?? '(untitled)', payload: task.payload ?? null,
+        taskId, title: task.title ?? '(untitled)', kind: task.kind ?? 'echo',
+        payload: task.payload ?? null,
         createdAt: task.createdAt ?? new Date().toISOString(),
         state: 'pending', nodeId: null, claimedAt: null, attempts: 0,
         result: null, nextAttemptAt: 0,
@@ -94,6 +95,15 @@ export function makeMemoryStore({
         r.state = 'failed';
         r.nextAttemptAt = now + backoffFor(r.attempts);
       }
+      return true;
+    },
+
+    /** Return a task to the queue from scratch - the operator "try again". */
+    async requeue(taskId) {
+      const r = rows.get(taskId);
+      if (!r) return false;
+      r.state = 'pending'; r.nodeId = null; r.claimedAt = null;
+      r.attempts = 0; r.result = null; r.error = null; r.nextAttemptAt = 0;
       return true;
     },
 

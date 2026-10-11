@@ -37,6 +37,12 @@ export function makePgRegistry(pool, { staleMs = DEFAULT_STALE_MS } = {}) {
       return r.rows.map((x) => ({ ...x, nodeId: x.node_id, ageMs: now ? now - Date.parse(x.last_seen) : null }));
     },
 
+    /** Remove a node immediately (graceful shutdown) instead of waiting for staleness. */
+    async retire(nodeId) {
+      const r = await pool.query(`DELETE FROM swarm_nodes WHERE node_id = $1`, [nodeId]);
+      return r.rowCount > 0;
+    },
+
     async reap() {
       const r = await pool.query(
         `DELETE FROM swarm_nodes
@@ -67,6 +73,9 @@ export function makeMemoryRegistry({ staleMs = DEFAULT_STALE_MS, now = () => Dat
         ...n, alive: t - n.lastSeen < staleMs, ageMs: t - n.lastSeen,
       }));
     },
+
+    /** Remove a node immediately (graceful shutdown) instead of waiting for staleness. */
+    async retire(nodeId) { return nodes.delete(nodeId); },
 
     async reap() {
       const t = now();
