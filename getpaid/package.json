@@ -1,0 +1,19 @@
+{
+  "name": "getpaid",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Turn overdue invoices into deposits. Dunning + payment links + recovery reporting, zero runtime dependencies.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "bin": { "getpaid": "./src/cli.mjs" },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "demo": "node src/cli.mjs demo",
+    "start": "node src/cli.mjs serve",
+    "seed": "node src/cli.mjs seed",
+    "report": "node src/cli.mjs report",
+    "dunning": "node src/cli.mjs run-dunning"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
