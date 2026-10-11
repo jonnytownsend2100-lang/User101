@@ -1,0 +1,12 @@
+{
+  "name": "swarm-console",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Real-time web console for the swarm: submit tasks, run worker nodes, and watch the atomic claim happen.",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": { "node": ">=20" }
+}
