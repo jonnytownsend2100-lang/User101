@@ -205,6 +205,85 @@ async function cmdVerify() {
   process.exitCode = result.valid ? 0 : 1;
 }
 
+/**
+ * Boots the real app in-process on an ephemeral port and walks the entire
+ * money path, printing each hop. This is the claim "it works" made checkable.
+ */
+async function cmdDemo() {
+  const store = new Store();
+  seedCatalog(store);
+  const { licenseSecret, adminToken } = await resolveSecrets();
+  const app = createApp({ store, providerName: 'mock', adminToken, licenseSecret, logger: { log() {}, error() {} } });
+  await new Promise((resolve) => app.listen(0, resolve));
+  const base = `http://127.0.0.1:${app.address().port}`;
+  const step = (n, what, detail = '') => console.log(`  ${String(n).padStart(2)}. ${what.padEnd(46)} ${detail}`);
+  const api = async (path, body, headers = {}) => {
+    const res = await fetch(`${base}${path}`, {
+      method: body === undefined ? 'GET' : 'POST',
+      headers: { 'content-type': 'application/json', ...headers },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    const text = await res.text();
+    let json = null;
+    try { json = JSON.parse(text); } catch { /* html */ }
+    return { status: res.status, json, text };
+  };
+
+  console.log(`mint demo -- full funnel on ${base} (simulated payments)
+`);
+  try {
+    const home = await api('/');
+    step(1, 'GET / (storefront)', `${home.status} ${home.text.includes('Mint Pro') ? 'products rendered' : 'MISSING PRODUCTS'}`);
+    const catalog = await api('/api/products');
+    step(2, 'GET /api/products', `${catalog.status} ${catalog.json.products.length} products`);
+
+    const order = await api('/api/checkout', { productId: 'mint-pro', email: opts.email ?? 'demo@example.com' });
+    const { orderId, claimToken, amount, fee, net, checkoutUrl } = order.json;
+    step(3, 'POST /api/checkout', `${order.status} ${orderId} ${format(amount)} (fee ${format(fee)}, net ${format(net)})`);
+
+    const pay = await api(`/pay/${orderId}`);
+    step(4, 'GET /pay/:id (buyer lands here)', `${pay.status} simulated checkout page`);
+
+    const unsigned = await api('/api/webhook/mock', { orderId });
+    step(5, 'POST webhook without claim token', `${unsigned.status} ${unsigned.json?.error ?? ''}`);
+
+    const settled = await api('/api/webhook/mock', { orderId, claimToken });
+    step(6, 'POST webhook with claim token', `${settled.status} paid, license issued`);
+
+    const retry = await api('/api/webhook/mock', { orderId, claimToken });
+    step(7, 'POST the same webhook again', `${retry.status} duplicate=${retry.json.duplicate} (no second license)`);
+
+    const thanks = await api(settled.json.redirect);
+    const key = (thanks.text.match(/MINT\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/) ?? ['(none)'])[0];
+    step(8, 'GET /thanks (buyer collects key)', `${thanks.status} ${key.slice(0, 28)}...`);
+
+    const verify = await api('/api/verify', { key });
+    step(9, 'POST /api/verify', `${verify.status} valid=${verify.json.valid}`);
+
+    const metrics = await api(`/api/metrics?token=${adminToken}`);
+    step(10, 'GET /api/metrics (owner)', `${metrics.status} gross ${format(metrics.json.gross)} net ${format(metrics.json.net)} mrr ${format(metrics.json.mrr)}`);
+
+    const dash = await api(`/dashboard?token=${adminToken}`);
+    step(11, 'GET /dashboard (owner)', `${dash.status} console rendered`);
+
+    const nosy = await api('/api/metrics');
+    step(12, 'GET /api/metrics without token', `${nosy.status} unauthorized`);
+
+    const refunded = await api(`/api/refund?token=${adminToken}`, { orderId, reason: 'demo' });
+    step(13, 'POST /api/refund', `${refunded.status} ${refunded.json.order.status}, license revoked`);
+
+    const after = await api('/api/verify', { key });
+    step(14, 'POST /api/verify after refund', `${after.status} valid=${after.json.valid} reason=${after.json.reason}`);
+
+    const final = await api(`/api/metrics?token=${adminToken}`);
+    step(15, 'GET /api/metrics after refund', `gross ${format(final.json.gross)} refunds ${format(final.json.refunds)} net ${format(final.json.net)}`);
+
+    console.log('\n  every step above is asserted in test/server.test.js -- run: npm test');
+  } finally {
+    await new Promise((resolve) => app.close(resolve));
+  }
+}
+
 function usage() {
   console.log(`mint -- an app that turns a product into collected payments
 
@@ -214,6 +293,7 @@ function usage() {
   node bin/mint.mjs products                    list the catalog
   node bin/mint.mjs product add --name X --price 29 [--interval month] [--pwyw --min 5]
   node bin/mint.mjs simulate [--email you@x]    create + settle an order end to end
+  node bin/mint.mjs demo                        boot the app and walk the whole funnel
   node bin/mint.mjs report [--days 30]          net revenue after fees and refunds
   node bin/mint.mjs keygen [--days 365]         mint a license key by hand
   node bin/mint.mjs verify <key>                verify a key offline
@@ -231,6 +311,7 @@ const commands = {
   serve: cmdServe,
   report: cmdReport,
   simulate: cmdSimulate,
+  demo: cmdDemo,
   keygen: cmdKeygen,
   verify: cmdVerify,
   help: async () => usage(),
