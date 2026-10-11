@@ -1,0 +1,15 @@
+{
+  "name": "swarm-toll",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Swarm Toll — a metered billing gateway in front of the swarm: API keys, credits, Stripe Checkout, usage metering, and a customer-auditable ledger.",
+  "bin": { "toll": "bin/toll.mjs" },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "test:watch": "node --test --watch test/*.test.js",
+    "serve": "node bin/toll.mjs serve",
+    "report": "node bin/toll.mjs report"
+  },
+  "engines": { "node": ">=20" }
+}
