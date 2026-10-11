@@ -128,3 +128,15 @@ test('month-end projection is linear and labelled with the sample point', () => 
   assert.equal(p.daysInMonth, 31);
   assert.equal(p.projectedUsd, 930);
 });
+
+// Regression tests taken from labels observed on live repos (nodejs/node) on
+// 2026-10-11, where these two fell through to "unpriced" and hid real spend.
+test('regression: real-world arch/suffix labels are priced, not dropped', () => {
+  assert.equal(resolveRunner(['ubuntu-24.04-arm']).sku, 'actions_linux_arm');
+  assert.equal(resolveRunner(['ubuntu-24.04-arm']).perMinute, 0.005);
+  assert.equal(resolveRunner(['macos-15-intel']).sku, 'actions_macos');
+  assert.equal(resolveRunner(['macos-15-intel']).perMinute, 0.062);
+  assert.equal(resolveRunner(['windows-2025']).sku, 'actions_windows');
+  assert.equal(resolveRunner(['macos-13-large']).sku, 'macos_l');
+  assert.equal(resolveRunner(['macos-13-large']).kind, 'larger');
+});

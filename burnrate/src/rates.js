@@ -103,12 +103,16 @@ export function getRateBySku(sku) {
 }
 
 // Documented *standard* label families. Anything in these families is priced
-// exactly, no guessing.
+// exactly, no guessing. The optional arch suffix matters in practice:
+// `ubuntu-24.04-arm` and `macos-15-intel` are real labels seen in the wild, and
+// before this they fell through to "unpriced" -- which is honest but useless.
 const STANDARD_LABEL_RE = [
   { re: /^ubuntu-slim$/, sku: 'actions_linux_slim' },
-  { re: /^ubuntu-(\d+\.\d+|latest)$/, sku: 'actions_linux' },
-  { re: /^windows-(\d+|latest)$/, sku: 'actions_windows' },
-  { re: /^macos-(1[0-9]|latest)$/, sku: 'actions_macos' },
+  { re: /^ubuntu-(?:\d+\.\d+|latest)(?:-(?:arm64|arm))?$/, sku: 'actions_linux', armSku: 'actions_linux_arm' },
+  { re: /^windows-(?:\d+|latest)(?:-(?:arm64|arm))?$/, sku: 'actions_windows', armSku: 'actions_windows_arm' },
+  // macOS 3-core and 4-core (M1 or Intel) share one price, so intel/arm64 need
+  // no distinction here. -large/-xlarge are larger runners and are handled below.
+  { re: /^macos-(?:1[0-9]|latest)(?:-(?:intel|arm64))?$/, sku: 'actions_macos' },
 ];
 
 function detectOs(label) {
@@ -155,9 +159,11 @@ export function resolveRunner(labels = [], runnerGroupName = null) {
 
   // 1) exact documented standard labels
   for (const label of lc) {
-    for (const { re, sku } of STANDARD_LABEL_RE) {
+    for (const { re, sku, armSku } of STANDARD_LABEL_RE) {
       if (re.test(label)) {
-        const rate = bySku.get(sku);
+        const isArm = /(?:^|-)arm(?:64)?$/.test(label);
+        const chosen = isArm && armSku ? armSku : sku;
+        const rate = bySku.get(chosen);
         return { ...pick(rate), kind: 'standard', confidence: 'exact', matchedBy: `label:${label}` };
       }
     }
